@@ -23,5 +23,5 @@ go run main.go --dir /your/git/repositiories/parent/directory --author-email you
 ## TODO
 
 - [ ] Add support for multiple parent directories
-- [ ] Add support for custom year or time range
+- [x] Add support for custom year or time range
 - [ ] Use the standard project layout

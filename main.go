@@ -6,7 +6,9 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -25,6 +27,8 @@ var COLORS = map[string]string{
 	"dark green":    "\033[48;5;28m" + EMPTY_CELL + "\033[0m",
 	"darkest green": "\033[48;5;22m" + EMPTY_CELL + "\033[0m",
 }
+
+var DEFAULT_RELATIVE_TIME = "1 year"
 
 type FirstDay int
 
@@ -162,16 +166,50 @@ func displayCells(INDEX_WEEKDAY map[int]string, cells [][]Cell) {
 	}
 }
 
+func parseRelativeTime(relativeTime string) (from time.Time, to time.Time, err error) {
+	relativeTimeParts := regexp.MustCompile(`(?i)(\d+)\s*(day|week|month|year)s?`).FindStringSubmatch(relativeTime)
+	if len(relativeTimeParts) == 3 {
+		fmt.Printf("Value: %s, Unit: %s\n", relativeTimeParts[1], relativeTimeParts[2])
+	} else {
+		return time.Time{}, time.Time{}, fmt.Errorf("Invalid relative time")
+	}
+
+	value, err := strconv.Atoi(relativeTimeParts[1])
+	if err != nil {
+		return time.Time{}, time.Time{}, err
+	}
+
+	switch relativeTimeParts[2] {
+	case "day":
+		return time.Now().AddDate(0, 0, -1*value), time.Now(), nil
+	case "week":
+		return time.Now().AddDate(0, 0, -7*value), time.Now(), nil
+	case "month":
+		return time.Now().AddDate(0, -1*value, 0), time.Now(), nil
+	case "year":
+		return time.Now().AddDate(-1*value, 0, 0), time.Now(), nil
+	}
+
+	return time.Time{}, time.Time{}, fmt.Errorf("Invalid relative time unit")
+}
+
+func parseYear(year int) (from time.Time, to time.Time, err error) {
+	if year < 0 {
+		return time.Time{}, time.Time{}, fmt.Errorf("Year must be positive")
+	}
+	from = time.Date(year, 1, 1, 0, 0, 0, 0, time.UTC)
+	to = time.Date(year+1, 1, 1, 0, 0, 0, 0, time.UTC).AddDate(0, 0, -1)
+	return from, to, nil
+}
+
 func main() {
 	dirFlag := flag.String("dir", "", "Path to the parent directory of git repositories to scan (depth = 1)")
 	authorFlag := flag.String("author-email", "", "Author's email")
 	firstWeekdayConfigFlag := flag.String("first-weekday", "sunday", "First day of the week")
-	flag.Parse()
+	yearFlag := flag.Int("year", -1, "Year to scan")
+	relativeTimeFlag := flag.String("relative-time", "", "Relative time to scan")
 
-	dayToFirstDay := map[string]FirstDay{
-		"sunday": Sunday,
-		"monday": Monday,
-	}
+	flag.Parse()
 
 	if *dirFlag == "" {
 		fmt.Println("No parent directory provided")
@@ -192,6 +230,25 @@ func main() {
 
 	if *authorFlag == "" {
 		fmt.Println("No author email provided")
+		return
+	}
+
+	if *relativeTimeFlag != "" && *yearFlag != -1 {
+		fmt.Println("Relative time and year are both set, please set only one")
+		return
+	}
+
+	if *relativeTimeFlag == "" && *yearFlag == -1 {
+		*relativeTimeFlag = DEFAULT_RELATIVE_TIME
+	}
+
+	dayToFirstDay := map[string]FirstDay{
+		"sunday": Sunday,
+		"monday": Monday,
+	}
+
+	if _, ok := dayToFirstDay[*firstWeekdayConfigFlag]; !ok {
+		fmt.Println("Invalid first weekday:", *firstWeekdayConfigFlag)
 		return
 	}
 
@@ -230,6 +287,28 @@ func main() {
 
 	commitCountByDate := map[string]int{}
 
+	var from time.Time
+	var to time.Time
+
+	if *relativeTimeFlag != "" {
+		from, to, err = parseRelativeTime(*relativeTimeFlag)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+	} else {
+		from, to, err = parseYear(*yearFlag)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+	}
+
+	formattedFrom := from.Format("2006-01-02")
+	formattedTo := to.Format("2006-01-02")
+
+	fmt.Println("From", formattedFrom, "To", formattedTo)
+
 	for _, repo := range repos {
 		cmd := exec.Command(
 			"git",
@@ -239,6 +318,8 @@ func main() {
 			"--reverse",
 			"--date=format:%Y-%m-%d",
 			"--author="+*authorFlag,
+			"--since="+formattedFrom,
+			"--until="+formattedTo,
 		)
 
 		out, err := cmd.Output()
@@ -259,11 +340,6 @@ func main() {
 			commitCountByDate[date]++
 		}
 	}
-
-	to := time.Now()
-	from := to.AddDate(-1, 0, 0)
-
-	fmt.Println("From", from.Format("2006-01-02"), "To", to.Format("2006-01-02"))
 
 	cells := [][]Cell{}
 

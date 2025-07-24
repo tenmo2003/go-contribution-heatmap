@@ -168,9 +168,7 @@ func displayCells(INDEX_WEEKDAY map[int]string, cells [][]Cell) {
 
 func parseRelativeTime(relativeTime string) (from time.Time, to time.Time, err error) {
 	relativeTimeParts := regexp.MustCompile(`(?i)(\d+)\s*(day|week|month|year)s?`).FindStringSubmatch(relativeTime)
-	if len(relativeTimeParts) == 3 {
-		fmt.Printf("Value: %s, Unit: %s\n", relativeTimeParts[1], relativeTimeParts[2])
-	} else {
+	if len(relativeTimeParts) != 3 {
 		return time.Time{}, time.Time{}, fmt.Errorf("Invalid relative time")
 	}
 
@@ -179,15 +177,15 @@ func parseRelativeTime(relativeTime string) (from time.Time, to time.Time, err e
 		return time.Time{}, time.Time{}, err
 	}
 
-	switch relativeTimeParts[2] {
+	switch strings.ToLower(relativeTimeParts[2]) {
 	case "day":
-		return time.Now().AddDate(0, 0, -1*value), time.Now(), nil
+		return time.Now().AddDate(0, 0, -1*value).AddDate(0, 0, 1), time.Now(), nil
 	case "week":
-		return time.Now().AddDate(0, 0, -7*value), time.Now(), nil
+		return time.Now().AddDate(0, 0, -7*value).AddDate(0, 0, 1), time.Now(), nil
 	case "month":
-		return time.Now().AddDate(0, -1*value, 0), time.Now(), nil
+		return time.Now().AddDate(0, -1*value, 0).AddDate(0, 0, 1), time.Now(), nil
 	case "year":
-		return time.Now().AddDate(-1*value, 0, 0), time.Now(), nil
+		return time.Now().AddDate(-1*value, 0, 0).AddDate(0, 0, 1), time.Now(), nil
 	}
 
 	return time.Time{}, time.Time{}, fmt.Errorf("Invalid relative time unit")

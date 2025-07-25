@@ -102,7 +102,17 @@ func expandPath(path string) string {
 func realignCells(cells [][]Cell) bool {
 	changed := false
 	for i := range len(cells) - 1 {
-		if len(cells[i+1]) > len(cells[i]) {
+		if len(cells[i]) == 0 {
+			cells[i] = append(cells[i], Cell{CommitCount: -1, Display: EMPTY_CELL})
+			continue
+		}
+		if len(cells[i+1]) == 0 {
+			cells[i+1] = append(cells[i+1], Cell{CommitCount: -1, Display: EMPTY_CELL})
+			continue
+		}
+		former := cells[i][0]
+		latter := cells[i+1][0]
+		if former.Date.After(latter.Date) {
 			for j := range i + 1 {
 				cells[j] = slices.Insert(cells[j], 0, Cell{CommitCount: -1, Display: EMPTY_CELL})
 				changed = true
@@ -177,15 +187,17 @@ func parseRelativeTime(relativeTime string) (from time.Time, to time.Time, err e
 		return time.Time{}, time.Time{}, err
 	}
 
+	now := time.Now()
+
 	switch strings.ToLower(relativeTimeParts[2]) {
 	case "day":
-		return time.Now().AddDate(0, 0, -1*value).AddDate(0, 0, 1), time.Now(), nil
+		return now.AddDate(0, 0, -1*value).AddDate(0, 0, 1), now, nil
 	case "week":
-		return time.Now().AddDate(0, 0, -7*value).AddDate(0, 0, 1), time.Now(), nil
+		return now.AddDate(0, 0, -7*value).AddDate(0, 0, 1), now, nil
 	case "month":
-		return time.Now().AddDate(0, -1*value, 0).AddDate(0, 0, 1), time.Now(), nil
+		return now.AddDate(0, -1*value, 0).AddDate(0, 0, 1), now, nil
 	case "year":
-		return time.Now().AddDate(-1*value, 0, 0).AddDate(0, 0, 1), time.Now(), nil
+		return now.AddDate(-1*value, 0, 0).AddDate(0, 0, 1), now, nil
 	}
 
 	return time.Time{}, time.Time{}, fmt.Errorf("Invalid relative time unit")

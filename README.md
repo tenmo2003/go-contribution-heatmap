@@ -9,11 +9,11 @@ This tool is a simple CLI tool that displays your git contribution heatmap for y
 ## Usage
 
 ```bash
-go run main.go --help
+go run cmd/main.go --help
 ```
 
 ```bash
-go run main.go --dir /your/git/repositiories/parent/directory --author-email your.email@example.com
+go run cmd/main.go --author-email your.email@example.com /your/git/repositiories/parent/directory
 ```
 
 ## Example
@@ -24,4 +24,4 @@ go run main.go --dir /your/git/repositiories/parent/directory --author-email you
 
 - [ ] Add support for multiple parent directories
 - [x] Add support for custom year or time range
-- [ ] Use the standard project layout
+- [x] Use the standard project layout

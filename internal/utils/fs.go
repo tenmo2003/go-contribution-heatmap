@@ -6,11 +6,19 @@ import (
 )
 
 func ExpandPath(path string) string {
-	if path == "." {
-		return os.Getenv("PWD")
+	if strings.HasPrefix(path, ".") {
+		wd, err := os.Getwd()
+		if err != nil {
+			panic(err)
+		}
+		return strings.Replace(path, ".", wd, 1)
 	}
 	if strings.HasPrefix(path, "~") {
-		return strings.Replace(path, "~", os.Getenv("HOME"), 1)
+		userHomeDir, err := os.UserHomeDir()
+		if err != nil {
+			panic(err)
+		}
+		return strings.Replace(path, "~", userHomeDir, 1)
 	}
 	return path
 }

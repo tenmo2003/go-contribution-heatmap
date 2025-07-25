@@ -54,9 +54,9 @@ func main() {
 
 	WEEKDAY_INDEX, INDEX_WEEKDAY := calendar.GenerateWeekdayMaps(firstWeekday)
 
-	root := utils.ExpandPath(dirs[0])
+	roots := utils.ExpandPaths(dirs)
 
-	repos, err := git.GetReposGitDirs(root)
+	repos, err := git.GetReposGitDirs(roots)
 	if err != nil {
 		fmt.Println(err)
 		return

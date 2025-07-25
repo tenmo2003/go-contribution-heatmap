@@ -31,30 +31,32 @@ func getGitDir(path string) (string, error) {
 	return gitDir, nil
 }
 
-func GetReposGitDirs(root string) ([]string, error) {
+func GetReposGitDirs(roots []string) ([]string, error) {
 	repos := []string{}
-	err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
-		if path == root {
-			return nil
-		}
-		if err != nil {
-			fmt.Println(err)
-			return err
-		}
-		if d.IsDir() {
-			gitDir, err := getGitDir(path)
+	for _, root := range roots {
+		err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
+			if path == root {
+				return nil
+			}
 			if err != nil {
-				if err.Error() == "not a git repository" {
-					return filepath.SkipDir
-				}
+				fmt.Println(err)
 				return err
 			}
-			repos = append(repos, gitDir)
+			if d.IsDir() {
+				gitDir, err := getGitDir(path)
+				if err != nil {
+					if err.Error() == "not a git repository" {
+						return filepath.SkipDir
+					}
+					return err
+				}
+				repos = append(repos, gitDir)
+			}
+			return nil
+		})
+		if err != nil {
+			return nil, err
 		}
-		return nil
-	})
-	if err != nil {
-		return nil, err
 	}
 	return repos, nil
 }

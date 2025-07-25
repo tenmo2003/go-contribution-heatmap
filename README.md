@@ -22,6 +22,6 @@ go run cmd/main.go --author-email your.email@example.com /your/git/repositiories
 
 ## TODO
 
-- [ ] Add support for multiple parent directories
+- [x] Add support for multiple parent directories
 - [x] Add support for custom year or time range
 - [x] Use the standard project layout
